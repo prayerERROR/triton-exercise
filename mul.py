@@ -7,10 +7,10 @@ BLOCK_SIZE = 256
 
 # Mul kernel
 @triton.jit
-def mul_kernel(a_ptr, b_ptr, out_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
+def mul_kernel(a_ptr, b_ptr, out_ptr, n, BLOCK_SIZE: tl.constexpr):
     pid = tl.program_id(axis=0)
     offset = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
-    mask = offset < n_elements
+    mask = offset < n
     a = tl.load(a_ptr + offset, mask=mask)
     b = tl.load(b_ptr + offset, mask=mask)
     res = a * b
@@ -20,9 +20,9 @@ def mul(a, b):
     assert a.device == b.device
     assert a.shape == b.shape
     out = torch.empty_like(a)
-    n_elements = out.numel()
-    grid = triton.cdiv(n_elements, BLOCK_SIZE)
-    mul_kernel[(grid,)](a, b, out, n_elements, BLOCK_SIZE=BLOCK_SIZE)
+    n = out.numel()
+    grid = triton.cdiv(n, BLOCK_SIZE)
+    mul_kernel[(grid,)](a, b, out, n, BLOCK_SIZE=BLOCK_SIZE)
     return out
 
 def benchmark_mul():
