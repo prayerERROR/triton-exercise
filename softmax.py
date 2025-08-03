@@ -22,6 +22,7 @@ def softmax_kernel(a_ptr, out_ptr, a_stride, out_stride, n, BLOCK_SIZE_N: tl.con
     tl.store(out_start_ptr + offset, out, mask=mask)
 
 def softmax(a):
+    assert a.is_contiguous()
     m, n = a.shape
     out = torch.empty_like(a)
     BLOCK_SIZE = triton.next_power_of_2(n)
