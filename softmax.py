@@ -18,8 +18,8 @@ def softmax_kernel(a_ptr, out_ptr, a_stride, out_stride, n, BLOCK_SIZE_N: tl.con
     row_minus_max = row - tl.max(row, axis=0) 
     numerator = tl.exp(row_minus_max)
     denominator = tl.sum(numerator, axis=0)
-    out = numerator / denominator
-    tl.store(out_start_ptr + offset, out, mask=mask)
+    res = numerator / denominator
+    tl.store(out_start_ptr + offset, res, mask=mask)
 
 def softmax(a):
     assert a.is_contiguous()

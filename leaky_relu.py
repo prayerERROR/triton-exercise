@@ -5,7 +5,7 @@ import triton.language as tl
 DEVICE = "cuda"
 BLOCK_SIZE = 256
 
-# Relu kernel
+# Leaky relu kernel
 @triton.jit
 def leaky_relu_kernel(a_ptr, out_ptr, N, BLOCK_SIZE: tl.constexpr):
     pid = tl.program_id(axis=0)

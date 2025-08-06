@@ -7,19 +7,19 @@ BLOCK_SIZE = 256
 
 # Relu kernel
 @triton.jit
-def relu_kernel(a_ptr, out_ptr, n, BLOCK_SIZE: tl.constexpr):
+def relu_kernel(a_ptr, out_ptr, N, BLOCK_SIZE: tl.constexpr):
     pid = tl.program_id(axis=0)
     offset = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
-    mask = offset < n
+    mask = offset < N
     a = tl.load(a_ptr + offset, mask=mask)
     res = tl.maximum(a, 0)
     tl.store(out_ptr + offset, res, mask=mask)
 
 def relu(a):
     out = torch.empty_like(a)
-    n = out.numel()
-    grid = triton.cdiv(n, BLOCK_SIZE)
-    relu_kernel[(grid,)](a, out, n, BLOCK_SIZE=BLOCK_SIZE)
+    N = out.numel()
+    grid = triton.cdiv(N, BLOCK_SIZE)
+    relu_kernel[(grid,)](a, out, N, BLOCK_SIZE=BLOCK_SIZE)
     return out
 
 def benchmark_relu():
