@@ -7,23 +7,23 @@ BLOCK_SIZE = 256
 
 # Dropout kernel
 @triton.jit
-def dropout_kernel(a_ptr, out_ptr, n, p, seed, BLOCK_SIZE: tl.constexpr):
+def dropout_kernel(a_ptr, out_ptr, N, p, seed, BLOCK_SIZE: tl.constexpr):
     pid = tl.program_id(axis=0)
     offset = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
-    mask = offset < n
+    mask = offset < N
     random = tl.rand(seed, offset)
     a_mask = random > p
     a = tl.load(a_ptr + offset, mask=mask)
     scale = 1 / (1 - p)
-    out = tl.where(a_mask, a*scale, 0.0)
-    tl.store(out_ptr + offset, out, mask=mask)
+    res = tl.where(a_mask, a*scale, 0.0)
+    tl.store(out_ptr + offset, res, mask=mask)
 
 def dropout(a, p, seed):
     assert 0 <= p <= 1
     out = torch.empty_like(a)
-    n = out.numel()
-    grid = triton.cdiv(n, BLOCK_SIZE)
-    dropout_kernel[(grid,)](a, out, n, p, seed, BLOCK_SIZE=BLOCK_SIZE)
+    N = out.numel()
+    grid = triton.cdiv(N, BLOCK_SIZE)
+    dropout_kernel[(grid,)](a, out, N, p, seed, BLOCK_SIZE=BLOCK_SIZE)
     return out
 
 def benchmark_dropout():

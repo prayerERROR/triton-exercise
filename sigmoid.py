@@ -7,19 +7,19 @@ BLOCK_SIZE = 256
 
 # Sigmoid kernel
 @triton.jit
-def sigmoid_kernel(a_ptr, out_ptr, n, BLOCK_SIZE: tl.constexpr):
+def sigmoid_kernel(a_ptr, out_ptr, N, BLOCK_SIZE: tl.constexpr):
     pid = tl.program_id(axis=0)
     offset = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
-    mask = offset < n
+    mask = offset < N
     a = tl.load(a_ptr + offset, mask=mask)
     res = 1.0 / (1.0 + tl.exp(-a))
     tl.store(out_ptr + offset, res, mask=mask)
 
 def sigmoid(a):
     out = torch.empty_like(a)
-    n = out.numel()
-    grid = triton.cdiv(n, BLOCK_SIZE)
-    sigmoid_kernel[(grid,)](a, out, n, BLOCK_SIZE)
+    N = out.numel()
+    grid = triton.cdiv(N, BLOCK_SIZE)
+    sigmoid_kernel[(grid,)](a, out, N, BLOCK_SIZE)
     return out
 
 def benchmark_sigmoid():

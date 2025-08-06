@@ -7,10 +7,10 @@ BLOCK_SIZE = 256
 
 # Tanh kernel
 @triton.jit
-def tanh_kernel(a_ptr, out_ptr, n, BLOCK_SIZE: tl.constexpr):
+def tanh_kernel(a_ptr, out_ptr, N, BLOCK_SIZE: tl.constexpr):
     pid = tl.program_id(axis=0)
     offset = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
-    mask = offset < n
+    mask = offset < N
     a = tl.load(a_ptr + offset, mask=mask)
     exp_a, exp_neg_a = tl.exp(a), tl.exp(-a)
     res = (exp_a - exp_neg_a) / (exp_a + exp_neg_a)
@@ -18,9 +18,9 @@ def tanh_kernel(a_ptr, out_ptr, n, BLOCK_SIZE: tl.constexpr):
 
 def tanh(a):
     out = torch.empty_like(a)
-    n = out.numel()
-    grid = triton.cdiv(n, BLOCK_SIZE)
-    tanh_kernel[(grid,)](a, out, n, BLOCK_SIZE=BLOCK_SIZE)
+    N = out.numel()
+    grid = triton.cdiv(N, BLOCK_SIZE)
+    tanh_kernel[(grid,)](a, out, N, BLOCK_SIZE=BLOCK_SIZE)
     return out
 
 def benchmark_sigmoid():
