@@ -65,3 +65,21 @@ def matmul(a, b):
         BLOCK_SIZE_K=BLOCK_SIZE_K
     )
     return out
+
+def benchmark_matmul():
+    sizes = [2**n for n in range(5, 14, 1)]
+    quantiles = [0.5, 0.2, 0.8]
+    torch_perf, triton_perf = [], []
+    for size in sizes:
+        torch.cuda.empty_cache()
+        x = torch.rand((size, size), device=DEVICE, dtype=torch.float16)
+        y = torch.rand((size, size), device=DEVICE, dtype=torch.float16)
+        # Coef = 3 is problematic here, because we load a and b multiple times.
+        # However, we can still compare our kernel with torch kernel.
+        # Torch is faster, since cuBLAS are optimized for different matrix size.
+        GBps = lambda ms: 3 * x.numel() * x.element_size() * 1e-9 / (ms * 1e-3)
+        ms, ms_max, ms_min = triton.testing.do_bench(lambda: x.matmul(y), quantiles=quantiles)
+        torch_perf.append((GBps(ms), GBps(ms_max), GBps(ms_min)))
+        ms, ms_max, ms_min = triton.testing.do_bench(lambda: matmul(x, y), quantiles=quantiles)
+        triton_perf.append((GBps(ms), GBps(ms_max), GBps(ms_min)))
+    return torch_perf, triton_perf
